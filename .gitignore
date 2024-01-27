@@ -1,0 +1,5 @@
+output
+sources/*
+!/sources/default
+temp
+__pycache__
