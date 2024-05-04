@@ -4,16 +4,8 @@ import random
 import math
 import ffmpeg
 import config
+from clip import Clip
 
-class Clip:
-    def __init__(self, path):
-        self.path = path
-        self.input = ffmpeg.input(path)
-        self.video = self.input.video
-        self.audio = self.input.audio
-        self.duration = float(ffmpeg.probe(path)["format"]["duration"])
-        self.dimensions = int(ffmpeg.probe(path)["streams"][0]["width"]), int(ffmpeg.probe(path)["streams"][0]["height"])
-        
 clips = []
         
 # Get a random number of clips from 'sources' directory.
@@ -34,11 +26,7 @@ subclips = []
 
 for i, clip in enumerate(clips):
     for x in range(random.randint(config.min_subclip_num, config.max_subclip_num)):
-        if config.max_subclip_length > clip.duration:
-            subclip_length = random.uniform(config.min_subclip_length, clip.duration)
-        else:
-            subclip_length = random.uniform(config.min_subclip_length, config.max_subclip_length)
-
+        subclip_length = min(random.uniform(config.min_subclip_length, config.max_subclip_length), clip.duration)
         subclip_start = random.uniform(0, clip.duration - subclip_length)
 
         subclip_video = clip.video.trim(start=subclip_start, duration=subclip_length).setpts("PTS-STARTPTS")
@@ -56,18 +44,17 @@ clips.sort(reverse=True, key=lambda clip : clip.dimensions[1])
 clip_0_width, clip_0_height = clips[0].dimensions
 
 for i, clip in enumerate(clips):
-    clip.video = clip.video.filter("scale", width=clip_0_width, height=clip_0_height, force_original_aspect_ratio=1).filter("pad", width=clip_0_width, height=clip_0_height, x="(ow-iw)/2", y="(oh-ih)/2")
+    clip.resize(clip_0_width, clip_0_height)
 
 # Apply random effects to subclips.
 for i, clip in enumerate(clips):
-    effects_num = random.randint(config.min_effects, config.max_effects)
+    effects_num = min(random.randint(config.min_effects, config.max_effects), len(config.effects))
     subclip_effects = random.sample(config.effects, k=effects_num)
     
     for effect in subclip_effects:
-        if effect == "invert_colors":
-            clip.video = clip.video.filter("negate")
+        f_effect = getattr(clip, effect)
 
-        elif effect == "speedx":
+        if effect == "speedx":
             speedx_factor = random.uniform(config.min_speedx_factor, config.max_speedx_factor)
             speed = random.choice(["slow", "fast"])
             
@@ -76,25 +63,16 @@ for i, clip in enumerate(clips):
             if speed == "slow":
                 speedx_factor = max(1 / speedx_factor, 0.5)
 
-            clip.video = clip.video.setpts(f"PTS/{speedx_factor}")
-            clip.audio = clip.audio.filter("atempo", speedx_factor)
+            f_effect(speedx_factor)
+
+        elif effect == "vibrato":
+            f_effect(config.vibrato_freq)
                 
-        elif effect == "reverse":
-            clip.video = clip.video.filter("reverse")
-            clip.audio = clip.audio.filter("areverse")
-
-        elif effect == "bitcrush":
-            bitcrush_path = f"{clip.path[:-4]}_bitcrush.mp4"
-            ffmpeg.output(clip.video, clip.audio, bitcrush_path, video_bitrate=100000, audio_bitrate=25000).run()
-            clips[i] = Clip(bitcrush_path)
-
         else:
-            print(f"Effect '{effect}' does not exist!")
+            f_effect()
             
 # Concatenate all subclips and output resulting video.
 def generate_video_name(name):
-    """ Returns a unique file name for the output video, using 'name' as a base. """
-    
     video_id = 0
 
     while os.path.exists(f"output/{name}{video_id}.mp4"):

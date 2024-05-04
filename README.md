@@ -1,4 +1,4 @@
-# ytpy
+# spaghetti
 Generate hilariously nonsensical videos. Comes with a selection of funny videos that will be cut, rearranged, and warped in various ways to create something entirely new. You can also add your own videos to the mix.
 
 ## Dependencies
@@ -13,11 +13,11 @@ Generate hilariously nonsensical videos. Comes with a selection of funny videos 
 
 2. Clone this repo:
 ```shell
-git clone https://github.com/r3n3gad3p3arl/ytpy.git
+git clone https://github.com/r3n3gad3p3arl/spaghetti.git
 ```
 3. Enter the development shell:
 ```shell
-cd ytpy
+cd spaghetti
 nix develop
 ```
 4. Optionally, add some of your own videos to the `sources` directory. You can also edit `config.py` and tweak the settings to your liking.
@@ -27,8 +27,3 @@ nix develop
 python main.py  # or python3 main.py
 ```
 6. Wait for your video to finish generating. You will find the finished product in the `output` directory.
-
-## To Do
-- Make a proper application
-- CLI
-- Maybe a GUI?
